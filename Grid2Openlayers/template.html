@@ -1,0 +1,455 @@
+﻿<!DOCTYPE html>
+<head>		
+		<script src="jquery-1.6.2.js"></script> 
+		<script src="OpenLayers.js"></script>	
+		<script src="excanvas.min.js"></script>
+		<script src="jquery.flot.js"></script>
+		<script src="jquery.flot.axislabels.js"></script>
+		<script type='text/javascript'>
+		
+			function init() {	
+		
+
+			}
+		</script>
+		
+		<STYLE type='text/css'>
+		div.olControlMousePosition {
+		bottom: 0;
+		right: 3px;
+		display: block;
+		position: absolute;
+		font-family: Arial;
+		font-size: smaller;
+		}
+		
+		#mouse {
+		border:solid 1px black;
+		padding: 5px;
+		background-color: #FFFFFF;
+		}
+		</STYLE>
+</head>
+
+<html style="height: 95%;">
+
+<body onload='init()' style="height: 100%;">
+<div style="height: 100%;">
+	<table style='width:100%; height:100%; padding:10px;'>
+		<tr style='height:85px;'>
+		<td style='border:solid 0px black;'></td>
+		<td style='border:solid 0px black;' ></td>
+		</tr>
+		
+		
+		<tr style='height:85%;'>
+			<td width='50%' style='height:85%;' >
+				<div id='map_element' style=' top:0; height:100%; '  ></div>
+			</td>
+			
+			<td id='graph' width='50%' style='padding:30px;'>
+
+			</td>
+		</tr>
+	</table>
+</div>
+
+</body >
+</html>
+
+<script type='text/javascript'>
+
+
+var map;
+		//graph options - here so they can be used throughout
+		var options = {
+        xaxes: [{
+				axisLabel: 'Distance',
+				}],
+        yaxes: [{
+				position: 'left',
+				axisLabel: 'Elevation',
+				}]
+		};
+		
+//variables to populate from VB
+	var minX = VBVAR_minX;
+	var maxX = VBVAR_maxX; 
+	var minY = VBVAR_minY; 
+	var maxY = VBVAR_maxY;
+	var bitmap = "VBVAR_bitmap";
+	var bmpX = VBVAR_bmpX;
+	var bmpY = VBVAR_bmpY;
+
+	$(function() {
+	//set up graph
+		var d2 = [[0, 0], [5, 0]];
+		$.plot("#graph", [d2], options);
+
+		
+	//set up map
+
+		var mapextents = new OpenLayers.Bounds(minX, minY, maxX, maxY)
+		map = new OpenLayers.Map('map_element',{
+		maxExtent: new OpenLayers.Bounds(-20000000, -20000000, 20000000, 20000000), 
+		maxResolution: 'auto',
+		units: 'm',
+		//restrictedExtent: mapextents,
+		controls: [         new OpenLayers.Control.Navigation(),         new OpenLayers.Control.ArgParser(),         new OpenLayers.Control.Attribution()     ],
+		units: 'm'
+		});
+
+		//var nobase = new OpenLayers.Layer('No Basemap',{isBaseLayer: true, 'displayInLayerSwitcher': true}); 
+		//map.addLayers([nobase]);
+		
+		//add image from VB code
+            var graphic = new OpenLayers.Layer.Image(
+                'grid',
+                bitmap,
+                new OpenLayers.Bounds(minX, minY, maxX, maxY),
+                new OpenLayers.Size(bmpX, bmpY),
+                {numZoomLevels: 10}
+            );
+			map.addLayer(graphic);
+		
+		
+	var site = new OpenLayers.Layer.Vector("site boundary",{styleMap: new OpenLayers.StyleMap({'default':{strokeColor:  '#000000',strokeOpacity: 1,strokeWidth: 3,fillColor: '#FF5500',fillOpacity: 0.0,pointRadius: 8,pointerEvents: 'visiblePainted'}}),renderers: OpenLayers.renderer});		
+	var site_points = [];
+		
+    var point1 = new OpenLayers.Geometry.Point(minX, minY);
+	var point2 = new OpenLayers.Geometry.Point(maxX, minY);
+	var point3 = new OpenLayers.Geometry.Point(maxX, maxY);
+	var point4 = new OpenLayers.Geometry.Point(minX, maxY);
+
+    site_points.push(point1);
+	site_points.push(point2);
+	site_points.push(point3);
+	site_points.push(point4);
+	site_points.push(site_points[0]);
+
+	var linear_ring = new OpenLayers.Geometry.LinearRing(site_points);
+	polygonFeature = new OpenLayers.Feature.Vector(
+            new OpenLayers.Geometry.Polygon([linear_ring]));
+	site.addFeatures([polygonFeature]);
+	map.addLayers([site]);
+	
+	var mp = new OpenLayers.Control.MousePosition({id: "mouse", prefix: "Coordinates: ", displayProjection: map.baseLayer.projection, numDigits: 0});
+	map.addControl(mp)	;
+	
+	map.setCenter(new OpenLayers.LonLat(minX + ((maxX-minX)/2), minY + ((maxY-minY)/2)), 12);
+	
+	
+	
+	//set up xsec
+		//add cross section line
+		Xsec = new OpenLayers.Layer.Vector('Cross Section');
+		 map.addLayer(Xsec);
+		 
+		 map.addControl(new OpenLayers.Control.DrawFeature(Xsec, OpenLayers.Handler.Path));                                     
+			var points = new Array(
+				new OpenLayers.Geometry.Point(minX + ((maxX-minX)/3), minY + ((maxY-minY)/3)),
+				new OpenLayers.Geometry.Point(minX + ((maxX-minX)/3)*2, minY + ((maxY-minY)/3)*2)
+			);
+
+			var line = new OpenLayers.Geometry.LineString(points);
+
+			var style = { 
+				strokeColor: '#000000', 
+				strokeOpacity: 1,
+				strokeWidth: 5
+			};
+
+		//add xsec line and allow modification			
+		var lineFeature = new OpenLayers.Feature.Vector(line, null, style);
+		Xsec.addFeatures([lineFeature]);
+
+		controls = {
+			modify: new OpenLayers.Control.ModifyFeature(Xsec)
+		};
+				
+		controls.modify.mode |= OpenLayers.Control.ModifyFeature.DRAG;
+		controls.modify.mode &= ~OpenLayers.Control.ModifyFeature.RESHAPE;
+		controls.modify.mode |= OpenLayers.Control.ModifyFeature.ROTATE;
+		controls.modify.mode |= OpenLayers.Control.ModifyFeature.RESIZE;
+		controls.modify.setFeatureState = function(){update();}
+	
+		for(var key in controls) {
+			map.addControl(controls[key]);
+		}
+
+		var control = controls[key];
+		control.activate();
+		
+		
+			
+	//map.addControl(new OpenLayers.Control.LayerSwitcher());
+
+		
+		
+	});
+
+	
+	
+	
+function update() {
+//may need to change to find right layer
+x1 = map.layers[2].features[0].geometry.components[0].x 
+y1 = map.layers[2].features[0].geometry.components[0].y
+x2 = map.layers[2].features[0].geometry.components[1].x 
+y2 = map.layers[2].features[0].geometry.components[1].y 
+
+run = x2 - x1;
+rise = y2 - y1;
+//good ol' pythagerous
+total_length = Math.sqrt((Math.pow(rise,2) + Math.pow(run,2)));
+
+angle = (Math.atan(run/rise))/(Math.PI/180)  //must convert from rads
+
+//build array for xsec by getting a list of XYs (loop through interval untill length reached)
+	//grid info
+		var llx = minX; //get from VB
+		var lly = minY; //get from VB
+		var cellsize = VBVAR_cellsize; //get from VB
+		var gridsize = VBVAR_gridsize; //get from VB
+		var intervals = VBVAR_intervals; //get from VB or option to set (add later)
+		var num_of_rows = VBVAR_nrows; //get from VB
+	//end grid info
+var interval = total_length / intervals;
+var count = 1;
+var Xarray  = new Array();
+var Yarray  = new Array();
+var XYarray;
+XYarray2 = new Array();
+for (h=1; h<intervals; h++){
+	result = getXYfromChainage(angle,(interval * h),intervals,(h));
+	Xarray[h] = (result[0] - llx) / cellsize;
+	Yarray[h] = (result[1] - lly) / cellsize;
+	XYarray2[h-1] = [result[0],result[1]];
+}
+XYarray2[h-1] = [x1,y1];
+XYarray2[h] = [x2,y2];
+
+
+//for each XY in array get the value
+ELEVarray  = new Array();
+var oldgridref = "";  //to avoid re-loading (most) aready loaded grids
+for (h=1; h<intervals; h++){
+	if (parseInt(Yarray[h]) < num_of_rows && parseInt(Yarray[h]) > 0) {
+	//get grid square and load JS		
+		var gridX = Math.floor(Xarray[h]/gridsize)+1;
+		var gridY = Math.floor(Yarray[h]/gridsize);
+		var gridref = "r" + ((Math.floor((num_of_rows-Yarray[h])/gridsize)) + 1) + "c" + gridX + ".js";
+		
+		if (isScriptLoaded(gridref) == false) {
+		//load sript file
+//		var headID = document.getElementsByTagName("head")[0];         
+//		var newScript = document.createElement('script');
+//		newScript.type = 'text/javascript';
+//		newScript.src = gridref;
+//		newScript.onload=scriptLoaded(h,interval,count,Xarray[h],Yarray[h],gridX,gridY,num_of_rows,gridsize);
+//		headID.appendChild(newScript);
+		SEQ_loadScript.clear();
+		SEQ_loadScript.addScript(gridref,20,"s_", count)
+		SEQ_loadScript.begin();
+		scriptLoaded(h,interval,count,Xarray[h],Yarray[h],gridX,gridY,num_of_rows,gridsize);
+
+		} else //if script already loaded
+		{ scriptLoaded(h,interval,count,Xarray[h],Yarray[h],gridX,gridY,num_of_rows,gridsize);
+		}
+
+		
+		
+	count = count + 1;
+	oldgridref = gridref;
+	}
+}
+
+//update xsec chart
+
+$.plot("#graph", [ELEVarray], options);	
+
+
+}
+
+
+//function to determine if a script aready loaded (if so it does not need re-loaded = keeps DOM tidy)
+function isScriptLoaded(srcREF){
+var allScripts = document.scripts;
+var isLoaded = false;
+	for (i=0; i<allScripts.length; i++){
+	var temp = allScripts[i].src.replace(/^.*[\\\/]/, '');
+	if (allScripts[i].src.replace(/^.*[\\\/]/, '') == srcREF) {isLoaded = true}	
+	}
+return isLoaded;
+}
+
+
+function scriptLoaded(h,interval,count,Xarrayh,Yarrayh,gridX,gridY,num_of_rows,gridsize) {
+	ELEVarray[h] = new Array(1);
+	ELEVarray[h][0] = interval * count;
+	ELEVarray[h][1] = eval("r" + ((Math.floor((num_of_rows-Yarrayh)/gridsize)) + 1) + "c" + gridX + "l" + (num_of_rows - parseInt(Yarrayh)) + "[" + (((parseInt(Xarrayh))) - (gridsize * (gridX - 1))) + "]");	
+
+}
+
+
+
+function getXYfromChainage(angle,chainage,intervals,interval){
+
+var nX ;
+if (x1 < x2) {nX = x2 - x1} else {nX = x1 - x2}
+var nY;
+if (y1 < y2) {nY = y2 - y1} else {nY = y1 - y2}
+nX = (nX / intervals) * interval;
+nY = (nY / intervals) * interval;
+
+var fullXY = new Array();
+var minX, minY;
+if (x1 < x2) {minX = x1} else {minX = x2}
+if (y1 < y2) {minY = y1} else {minY = y2}
+if (angle < 0) {if (x1 < x2) {minX = x2} else {minX = x1}}
+
+//if angle is -'ve and between 0 & -90 then 
+if (angle < 0 && angle > -90){fullXY[0] =  minX - nX; fullXY[1] = minY + nY;}
+//if angle is -'ve and between -90 & -180 then 
+if (angle < -90 && angle > -180){fullXY[0] =  minX - nX; fullXY[1] = minY + nY;}
+//if angle is +'ve and between 0 & 90 then 
+if (angle > 0 && angle < 90){fullXY[0] =  minX + nX; fullXY[1] = minY + nY;}
+//if angle is +'ve and between 90 & 180 then 
+if (angle > 90 && angle < 180){fullXY[0] =  minX + nX; fullXY[1] = minY + nY;}
+
+
+return fullXY;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+var SEQ_loadScript = {
+
+	scriptList:[],
+	timeInterval:500,
+	scriptCount:0,
+	maxLoadCount:20,
+	loadCount:0,
+	loadDone:false,
+	timeID:-1,
+	debug: false,
+	
+	addScript: function (url, timeInt, sIdPrefix, sID) {
+		if (timeInt == undefined || timeInt == null) timeInt = SEQ_loadScript.timeInterval;
+		var scriptID = "";
+		SEQ_loadScript.scriptCount++;
+		if (sID == undefined || sID == null) {
+			scriptID = sIdPrefix + scriptCount;
+		} else
+		{
+			scriptID = sIdPrefix + sID;
+		}
+		
+		SEQ_loadScript.scriptList.push( {"url":url, 
+										 "sid":scriptID, 
+										 "tint":timeInt 
+										 });
+	},
+	
+	begin: function(){
+	
+		SEQ_loadScript.loadDone = false;
+		SEQ_loadScript.loadCount = 0;
+		
+		timeID = -1;
+		SEQ_loadScript.loadingData();
+	},
+	
+	clear: function(){
+		// clear out the array
+		SEQ_loadScript.scriptList = [];
+		SEQ_loadScript.scriptCount = 0;
+	},
+	
+	loadingData: function(){
+	
+		if (SEQ_loadScript.scriptList.length <= 0) return;
+		var tempObj = SEQ_loadScript.scriptList.shift();
+		var url = tempObj.url;
+		var sid = tempObj.sid;
+		var tint = tempObj.tint;
+	
+		SEQ_loadScript.loadDone = false;
+		SEQ_loadScript.loadCount = 0;
+		SEQ_loadScript.loadJSLibrary(url, null, sid);
+	
+		setTimeout(function(){
+						SEQ_loadScript.timeID = setInterval("SEQ_loadScript.checkLoad('"+sid+"')", tint);
+		
+					}, 50);
+	},
+	
+	checkLoad: function (param) {
+		if (SEQ_loadScript.loadDone)
+		{
+			// now load new data
+			clearInterval(SEQ_loadScript.timeID);
+
+			SEQ_loadScript.callbackFunc(param);
+			SEQ_loadScript.loadingData();
+		} else
+		{
+			SEQ_loadScript.loadCount++;
+			if (SEQ_loadScript.loadCount > SEQ_loadScript.maxLoadCount)
+			{
+				clearInterval(SEQ_loadScript.timeID);
+				SEQ_loadScript.callbackFunc(param, "FAIL TO LOAD");
+				// load next one.
+				SEQ_loadScript.loadingData();
+			}	
+			// else continue
+		}
+	},
+	
+	setLoadDone: function(){
+		SEQ_loadScript.loadDone = true;
+	},
+	
+	loadJSLibrary: function (aUrl, aTag, aSId)
+	{	
+		var headObj = {};
+		if (aTag == null || aTag == "")
+		{
+			headObj = document.getElementsByTagName("head")[0];
+		} else
+		{
+			headObj = document.getElementById(aTag);
+		}
+	
+		var node = document.createElement("script");
+		if (node.addEventListener)
+			node.addEventListener("load", function() { SEQ_loadScript.setLoadDone(); }, false);
+		else
+			node.onreadystatechange = function() {
+			if (this.readyState == "complete" || this.readyState == "loaded") SEQ_loadScript.setLoadDone();
+		}
+		node.src = aUrl;
+		node.id = aSId;
+		headObj.appendChild(node);
+	
+	},
+	
+	callbackFunc:function(sID){
+		if (SEQ_loadScript.debug)
+		{
+			alert("script ID: " + sID + " Src: " + document.getElementById(sID).src);
+		}
+	}
+};
+
+
+</script>
