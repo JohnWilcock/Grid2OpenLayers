@@ -8,3 +8,14 @@ C:\Users\me\Documents\OpenRelease\OpenRelease\Grid2Openlayers\obj\Debug\Grid2PNG
 C:\Users\me\Documents\OpenRelease\OpenRelease\Grid2Openlayers\obj\Debug\Grid2PNG.Resource1.resources
 C:\Users\me\Documents\OpenRelease\OpenRelease\Grid2Openlayers\obj\Debug\Grid2PNG.Form1.resources
 C:\Users\me\Documents\OpenRelease\OpenRelease\Grid2Openlayers\obj\Debug\Grid2Openlayers.vbproj.GenerateResource.Cache
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\bin\Debug\Grid2OL.exe.config
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\bin\Debug\Grid2OL.exe
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\bin\Debug\Grid2OL.pdb
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2Openlayers.vbprojResolveAssemblyReference.cache
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.About.resources
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.Finished.resources
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.Resource1.resources
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.Form1.resources
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2Openlayers.vbproj.GenerateResource.Cache
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.exe
+C:\Users\me\Documents\GitHub\Grid2OpenLayers\Grid2Openlayers\obj\Debug\Grid2OL.pdb

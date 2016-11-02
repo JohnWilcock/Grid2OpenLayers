@@ -8,11 +8,11 @@ Imports System.Runtime.InteropServices
 ' change them to the information which is associated with the assembly
 ' you compile.
 
-<assembly: AssemblyTitle("Grid2PNG")>
+<Assembly: AssemblyTitle("Grid2OpenLayers")>
 <assembly: AssemblyDescription("")>
 <assembly: AssemblyConfiguration("")>
 <assembly: AssemblyCompany("")>
-<assembly: AssemblyProduct("Grid2PNG")>
+<Assembly: AssemblyProduct("Grid2OpenLayers")>
 <assembly: AssemblyCopyright("Copyright 2013")>
 <assembly: AssemblyTrademark("")>
 <assembly: AssemblyCulture("")>

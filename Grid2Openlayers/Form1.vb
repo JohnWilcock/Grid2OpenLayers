@@ -240,7 +240,7 @@ Public Partial Class Form1
         'create html file and set the variables in it / file paths
 
         Dim rm As System.Resources.ResourceManager
-        rm = New System.Resources.ResourceManager("Grid2PNG.Resource1", Assembly.GetExecutingAssembly())
+        rm = New System.Resources.ResourceManager("Grid2OL.Resource1", Assembly.GetExecutingAssembly())
         Dim html As String = rm.GetObject("html2")
 
 
@@ -698,8 +698,8 @@ Public Partial Class Form1
 		'create javascript and set the variables in it / file paths
 			
 		 Dim rm As System.Resources.ResourceManager
-	     rm = new System.Resources.ResourceManager("Grid2PNG.Resource1", Assembly.GetExecutingAssembly())
-	     Dim html As String = rm.GetObject("varBlock")
+        rm = New System.Resources.ResourceManager("Grid2OL.Resource1", Assembly.GetExecutingAssembly())
+        Dim html As String = rm.GetObject("varBlock")
 	     Dim htmlupdate As String = rm.GetObject("UpdateBlock")
 	     
 	     htmlupdate = htmlupdate.Replace("VBGRIDNO", gridcount)
