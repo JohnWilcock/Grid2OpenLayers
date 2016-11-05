@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<head>		
+		<script src="sk3080_DSM_2m/jquery-1.6.2.js"></script> 
+		<script src="sk3080_DSM_2m/OpenLayers.js"></script>	
+		<script src="sk3080_DSM_2m/excanvas.min.js"></script>
+		<script src="sk3080_DSM_2m/jquery.flot.js"></script>
+		<script src="sk3080_DSM_2m/jquery.flot.axislabels.js"></script>
+		<script type='text/javascript'>
+		
+			function init() {	
+		
+
+			}
+		</script>
+		
+		<STYLE type='text/css'>
+		div.olControlMousePosition {
+		bottom: 0;
+		right: 3px;
+		display: block;
+		position: absolute;
+		font-family: Arial;
+		font-size: smaller;
+		}
+		
+		#mouse {
+		border:solid 1px black;
+		padding: 5px;
+		background-color: #FFFFFF;
+		}
+
+		#wrapper {
+			width:100%;
+			height:100%;
+			position:reletive;
+			top:5px;
+			left:5px;
+
+		}
+		ul.tabs {
+			width:100%;
+			margin:0;
+			padding:0;
+			
+		}
+		ul.tabs li {
+			display:block;
+			float:left;
+			padding:0 5px;
+
+		}
+		ul.tabs li a {
+			display:block;
+			float:left;
+			padding:5px;
+			font-size:0.8em;
+			background-color:#e0e0e0;
+			color:#666;
+			text-decoration:none;
+		}
+		.selected {
+			font-weight:bold;
+		}
+		.tab-content {
+			clear:both;
+			border:1px solid #ddd;
+			padding:10px;
+		} 
+
+.cssbutton {
+     background-color: #e0e0e0;
+     padding: 5px 10px 5px 10px;
+     text-align: center;
+     color: #666;
+     text-decoration: none; border: 1px inset #aaa;
+
+      border-top: inset 1px #666; border-left: inset 1px #666; border-bottom: solid 1px solid #666; border-right: 1px solid #666;
+}
+
+.cssbutton:hover  {
+     background: #999;
+	 color: #fff;
+* 	 font-weight: bold;
+}
+		</STYLE>
+</head>
+
+<html style="height: 95%;">
+
+<body onload='init()' style="height: 100%;">
+<div id='main' style="height:100%;">
+	<table style='width:100%; height:100%; padding:10px;'>
+		<tr style='height:85px;'>
+		<td style='border:solid 0px black;'></td>
+		<td style='border:solid 0px black;' ></td>
+		</tr>
+		
+		
+		<tr style='height:85%;'>
+			<td width='50%' style='height:85%;' >
+				<div id='map_element' style=' top:0; height:100%; '  ></div>
+			<td  style='height:85%; width:50%;' style='padding:30px;'>
+				
+				
+			<div id="wrapper" >
+				<ul class="tabs">
+					<li><a href="#" class="defaulttab" rel="tabs1">Cross Section</a></li>
+					<li><a href='#' rel='tabs2'>Table</a></li>
+					<li><a href="#" rel="tabs3">Information</a></li>
+					<li><a href='#' rel='tabs4'>Options</a></li>
+				</ul>
+			 
+				<div class="tab-content" id="tabs1" style='height:90%; width:90%;'><div id='graph' style='height:100%; width:100%;'></div></div>
+				<div class="tab-content" id="tabs2" style='height:90%; width:90%;'><div id='table' style='height:400px; width:100%; overflow:scroll;'></div></div>
+				<div class="tab-content" id="tabs3" style='height:90%; width:90%;'><p>This tool uses the following pure javascript libraries and is designed to be able to run directly off a hard drive or a server.  It has no dependancies on any web services or installed programs beyond an internet browser (Tested in Internet Explorer, Firefox and Chrome) </p><p>The following Open Source Libraries are used :</p>Openlayers 2.12 <a href='http://openlayers.org/'>Link</a> </br></br>JQuery 1.6.2 <a href='http://jquery.com/'>Link</a></br></br>excanvas <a href='http://excanvas.sourceforge.net/'>Link</a></br></br>Flot 0.8 <a href='http://www.flotcharts.org/'>Link</a></br></br>Axis Labels Plugin for flot <a href='http://github.com/markrcote/flot-axislabels'>Link</a></br></br><br><br>john Wilcock</div>
+<div class="tab-content" id="tabs4" style='height:90%; width:90%;'><div id='options' style='height:400px; width:100%;'> Select the number of samples to be taken along each cross section<br><br><select id='samples' onchange='changesamples(this.value)'><option value='10' >10</option><option value='20' >20</option><option value='30' selected>30</option><option value='40' >40</option></select> <br><hr> <br><button class='cssbutton' onclick='plotpoints()'>Plot sample points on map</button> &nbsp &nbsp <button class='cssbutton' onclick='clearpoints()'>Clear points</button></div></div>
+
+
+			</div> 
+
+			</td>
+		</tr>
+	</table>
+</div>
+
+</body >
+</html>
+
+<script type='text/javascript'>
+
+
+var map;
+		//graph options - here so they can be used throughout
+		var options = {
+        xaxes: [{
+				axisLabel: 'Distance'
+				}],
+        yaxes: [{
+				position: 'left',
+				axisLabel: 'Elevation'
+				}]
+		};
+
+//variables to populate from VB
+	var num_of_grids = 2;
+	
+//variables to populate from VB
+	var minX2 = 430000;
+	var maxX2 = 431000; 
+	var minY2 = 380000; 
+	var maxY2 = 381000;
+	var bmpX2 = 100;
+	var bmpY2 = 100;
+	
+	//NEW GC moved 
+	//grid info
+		var llx2 = minX2; //get from VB
+		var lly2 =minY2; //get from VB
+		var cellsize2 = 2; //get from VB
+		var gridsize2 = 50; //get from VB
+		var intervals2 = 30; //get from VB or option to set (add later)
+		var num_of_rows2 = 500; //get from VB
+		
+		var xgrids2 = Math.ceil(((maxX2 - minX2)/cellsize2)/gridsize2);  // new validation
+		var ygrids2 = Math.ceil(((maxY2 - minY2)/cellsize2)/gridsize2);  // new validation
+		var num_of_lines2 = ((maxY2 - minY2)/cellsize2);  // new validation
+	//end grid info
+	var interval2;
+	
+	//NEW GC create master array to hold names of all scripts loaded
+	var MasterScriptList2 = new Array();
+	var ScriptsNeeded2 = new Array();
+	var CurrentLoadTotal2 = 0;
+	var tot12 = 0;
+	var currentXarray2;
+	var currentYarray2;
+
+//variables to populate from VB
+	var minX = 430000;
+	var maxX = 431000; 
+	var minY = 380000; 
+	var maxY = 381000;
+	var bitmap = "sk3080_DSM_2m/sk3080_DSM_2m.jpg";
+	var bmpX = 100;
+	var bmpY = 100;
+	
+	//NEW GC moved 
+	//grid info
+		var llx = minX; //get from VB
+		var lly = minY; //get from VB
+		var cellsize = 2; //get from VB
+		var gridsize = 50; //get from VB
+		var intervals = 30; //get from VB or option to set (add later)
+		var num_of_rows = 500; //get from VB
+
+		var xgrids = Math.ceil(((maxX - minX)/cellsize)/gridsize);  // new validation
+		var ygrids = Math.ceil(((maxY - minY)/cellsize)/gridsize);  // new validation
+		var num_of_lines = ((maxY - minY)/cellsize);  // new validation
+	//end grid info
+	var interval;
+	
+	//NEW GC create master array to hold names of all scripts loaded
+	var MasterScriptList = new Array();
+	var ScriptsNeeded = new Array();
+	var CurrentLoadTotal = 0;
+	var tot1 = 0;
+	var currentXarray;
+	var currentYarray;
+
+	var fullArray  = new Array();
+                   var PointLayer;
+
+	$(function() {
+	//set up arrays for all grids
+	for(var g = 0; g < num_of_grids + 1; g++){
+	fullArray[g] =  new Array();
+	}
+
+	//set up tabs for graph/table
+	$('.tabs a').click(function(){
+		switch_tabs($(this));
+	});
+ 
+	switch_tabs($('.defaulttab'));
+
+
+	//set up graph
+		var d2 = [[0, 0], [5, 0]];
+		$.plot("#graph", [d2], options);
+
+		
+	//set up map
+
+		var mapextents = new OpenLayers.Bounds(minX, minY, maxX, maxY)
+		map = new OpenLayers.Map('map_element',{
+		maxExtent: new OpenLayers.Bounds(-20000000, -20000000, 20000000, 20000000), 
+		maxResolution: 'auto',
+		units: 'm',
+		//restrictedExtent: mapextents,
+		controls: [         new OpenLayers.Control.Navigation(),         new OpenLayers.Control.ArgParser(),         new OpenLayers.Control.Attribution()     ],
+		units: 'm'
+		});
+
+		//var nobase = new OpenLayers.Layer('No Basemap',{isBaseLayer: true, 'displayInLayerSwitcher': true}); 
+		//map.addLayers([nobase]);
+		
+		//add image from VB code
+            var graphic = new OpenLayers.Layer.Image(
+                'grid',
+                bitmap,
+                new OpenLayers.Bounds(minX, minY, maxX, maxY),
+                new OpenLayers.Size(bmpX, bmpY),
+                {numZoomLevels: 10, alwaysInRange: true}
+            );
+			map.addLayer(graphic);
+		
+		
+	var site = new OpenLayers.Layer.Vector("site boundary",{styleMap: new OpenLayers.StyleMap({'default':{strokeColor:  '#000000',strokeOpacity: 1,strokeWidth: 3,fillColor: '#FF5500',fillOpacity: 0.0,pointRadius: 8,pointerEvents: 'visiblePainted'}}),renderers: OpenLayers.renderer});		
+	var site_points = [];
+		
+    var point1 = new OpenLayers.Geometry.Point(minX, minY);
+	var point2 = new OpenLayers.Geometry.Point(maxX, minY);
+	var point3 = new OpenLayers.Geometry.Point(maxX, maxY);
+	var point4 = new OpenLayers.Geometry.Point(minX, maxY);
+
+    site_points.push(point1);
+	site_points.push(point2);
+	site_points.push(point3);
+	site_points.push(point4);
+	site_points.push(site_points[0]);
+
+	var linear_ring = new OpenLayers.Geometry.LinearRing(site_points);
+	polygonFeature = new OpenLayers.Feature.Vector(
+            new OpenLayers.Geometry.Polygon([linear_ring]));
+	site.addFeatures([polygonFeature]);
+	map.addLayers([site]);
+	
+	var mp = new OpenLayers.Control.MousePosition({id: "mouse", prefix: "Coordinates: ", displayProjection: map.baseLayer.projection, numDigits: 0});
+	map.addControl(mp)	;
+	
+	map.setCenter(new OpenLayers.LonLat(minX + ((maxX-minX)/2), minY + ((maxY-minY)/2)), 5);
+	map.zoomToMaxExtent();
+	
+	
+	//set up xsec
+		//add cross section line
+		OpenLayers.Renderer.symbol.newnode = [4, 0, 6, 0, 6, 4, 10, 4, 10, 6, 6, 6, 6, 10, 4, 10, 4, 6, 0, 6, 0, 4, 4, 4, 4, 0];
+		OpenLayers.Renderer.symbol.move = [0,10, 4,13, 4,11, 9,11 ,9,16, 7,16 ,10,20 ,13,16 ,11,16 ,11,11 ,16,11 ,16,13 ,20,10 ,16,7 ,16,9 ,11,9 ,11,4 ,13,4 ,10,0 ,7,4 ,9,4 ,9,9 ,4,9 ,4,7];
+
+		Xsec = new OpenLayers.Layer.Vector('Cross Section',{styleMap: new OpenLayers.StyleMap({'default':{strokeColor:  '#000000',strokeOpacity: 1,strokeWidth: 1,fillColor: '#FFFFFF',fillOpacity: 1.0,pointRadius: 10,pointerEvents: 'visiblePainted', graphicName: "move"},	'select': {
+            pointRadius: 15				 
+        }
+}),renderers: OpenLayers.renderer});
+		 map.addLayer(Xsec);
+		 
+		 map.addControl(new OpenLayers.Control.DrawFeature(Xsec, OpenLayers.Handler.Path));                                     
+			var points = new Array(
+				new OpenLayers.Geometry.Point(minX + ((maxX-minX)/3), minY + ((maxY-minY)/3)),
+				new OpenLayers.Geometry.Point(minX + ((maxX-minX)/3)*2, minY + ((maxY-minY)/3)*2)
+			);
+
+			var line = new OpenLayers.Geometry.LineString(points);
+
+			var style = { 
+				strokeColor: '#000000', 
+				strokeOpacity: 1,
+				strokeWidth: 5
+			};
+
+		//add xsec line and allow modification			
+		var lineFeature = new OpenLayers.Feature.Vector(line, null, style);
+		Xsec.addFeatures([lineFeature]);
+
+		//controls = {
+		//	modify: new OpenLayers.Control.ModifyFeature(Xsec)
+		//};
+			 var snapVertex = {methods: ['vertex', 'edge'], layers: [lineFeature]};
+         controls = {       line: new OpenLayers.Control.DrawFeature(lineFeature,
+                            OpenLayers.Handler.Path,
+                            {'displayClass': 'olControlDrawFeaturePath',
+                             handlerOptions: snapVertex}),
+				modify: new OpenLayers.Control.ModifyFeature(Xsec)
+			}
+
+		controls.modify.virtualStyle.fillColor = "#00FF00";
+		controls.modify.virtualStyle.strokeColor = "#FFFFFF";
+		controls.modify.virtualStyle.fillOpacity = 1;
+		controls.modify.virtualStyle.pointRadius = 4;
+		controls.modify.virtualStyle.strokeWidth = 1;
+		controls.modify.virtualStyle.strokeOpacity = 1;
+		controls.modify.virtualStyle.graphicName = "newnode";
+							
+		controls.modify.setFeatureState = function(){update(); update2();}
+	
+		for(var key in controls) {
+			map.addControl(controls[key]);
+		}
+
+                                      //control now activated after the point layer popup, as both controls must be activated to tegther to be picked up by chrome and firefox
+		//var control = controls[key];
+		//control.activate();
+		
+
+		controls.modify.selectFeature(lineFeature);	
+	//map.addControl(new OpenLayers.Control.LayerSwitcher());
+
+//used for plotpoints function
+PointLayer = new OpenLayers.Layer.Vector("Points",{styleMap: new OpenLayers.StyleMap({
+	'default':{strokeColor:  '#000000',
+			   strokeOpacity: 1,
+			   strokeWidth: 1,
+			   fillColor: '#000000',
+			   fillOpacity: 0.5,
+			   pointRadius: 4,
+			   pointerEvents: 'visiblePainted',
+			   label : ''
+			   
+			  },
+	'select': {
+            pointRadius: 10,
+            fillOpacity: 0.5
+			//labelXOffset: 50,
+            //labelYOffset: 0,
+			//label : "sample: ${sample}\nChainage: ${chainage} \nElevation: ${ele}"
+			//label : "a"
+        }
+		}),renderers: OpenLayers.renderer});
+		
+		    // Create a select feature control for the plotted points and add it to the map.
+
+			var size = new OpenLayers.Size(2,2);
+			var offset = new OpenLayers.Pixel(12, 35);
+			var icon = new OpenLayers.Icon('',size,offset);
+			
+map.addLayer(PointLayer);
+//select must be here as other controls are referenced by number.
+    var select = new OpenLayers.Control.SelectFeature([PointLayer,Xsec], {
+        hover: true
+    });
+    map.addControl(select);
+    select.activate();
+	
+			PointLayer.events.on({
+               featureselected: function(e) {
+                	AutoSizeAnchoredMinSize = OpenLayers.Class(OpenLayers.Popup.Anchored, {'autoSize': true, 'border':'2px'});
+					popup_att = "<div style='padding:5px;'>Sample: " + e.feature.attributes.sample + "<br>Chainage: " + e.feature.attributes.chainage.toFixed(2) + "<br>" + fullArray[0][1] + ": " + e.feature.attributes.ele.toFixed(3) ;
+					for(var p = 2;p<num_of_grids +1; p++){
+					popup_att+= '<br>' + fullArray[0][p] + ": " + eval("e.feature.attributes.ele" + p + ".toFixed(3)");
+					}
+					popup_att+="</div>";
+					popup = new AutoSizeAnchoredMinSize('info', e.feature.geometry.getBounds().getCenterLonLat(),null,popup_att ,icon, true, onPopupClose);
+					popup.setBackgroundColor('#FFFFAA');
+					popup.setBorder("1px solid");
+					e.feature.popup = popup;
+					map.addPopup(popup);
+				},  
+				featureunselected: function(e) {
+					e.feature.popup.destroy();
+				}
+            });	
+		
+			Xsec.events.on({
+               featureselected: function(e) {
+                	AutoSizeAnchoredMinSize = OpenLayers.Class(OpenLayers.Popup.Anchored, {'autoSize': true, 'border':'2px'});
+					
+					popup_att = "<div style='padding:5px;'>";
+					//find out if it is a drag node or new node handle
+					var isNewnode = false;
+					var isLine = false;
+					if(map.controls[6].virtualVertices != null){  // checking for complex section type
+						for(var p = 0;p<map.controls[6].virtualVertices.length; p++){
+							if(e.feature.id == map.controls[6].virtualVertices[p].id) {isNewnode = true}
+							if(e.feature.id == map.layers[2].features[0].id) {isLine = true}
+						}
+
+						if(isNewnode == true) {popup_att+= "Click and drag to create new node"} else {popup_att+= "Click and drag to move"}
+					
+					} else 
+					//do if simple section
+					{if(e.feature.id == map.layers[2].features[1].id) {popup_att+= "Click and drag to move"} else {popup_att+= "Click and drag to rotate"}}
+					if(isLine != true) {
+					popup_att+="</div>";
+					
+					popup = new AutoSizeAnchoredMinSize('info', e.feature.geometry.getBounds().getCenterLonLat(),null,popup_att ,icon, true, onPopupClose);
+					popup.setBackgroundColor('#FFFFAA');
+					popup.setBorder("1px solid");
+					e.feature.popup = popup;
+					map.addPopup(popup);
+					}
+				},  
+				featureunselected: function(e) {
+				    while( map.popups.length ) {
+						map.removePopup(map.popups[0]);
+					}
+
+				}
+            });		
+
+function onPopupClose(){}	
+
+	var bgmap = new OpenLayers.Layer.Image('Background Map',"sk3080_DSM_2m/sk3080_DSM_2m_BGmap.jpg",new OpenLayers.Bounds(minX, minY, maxX, maxY),new OpenLayers.Size(1000, 1000),{numZoomLevels: 10, isBaseLayer: false, alwaysInRange: true});bgmap.setOpacity(0.5);map.addLayer(bgmap);	
+		
+	});
+
+	
+	
+	
+function update() {
+//new GC
+//incase last call crashed
+tot1=0;
+ScriptsNeeded = new Array();
+ELEVarray  = new Array(); //added for multipart
+
+// *** multipart - xsec
+var xsec_length = map.layers[2].features[0].geometry.getLength();
+var xsec_done_length = 0;
+var xsec_running_total = 0;
+var xsec_control = map.controls[6];
+interval = xsec_length / intervals;
+var Xarray  = new Array();
+var Yarray  = new Array();
+XYarray2 = new Array();
+var xyarray_count = 0;
+
+
+var xsec_remainder = 0;//added for multipart
+var cum_xsec_remainder = 0;
+for(var vert = 0;vert<xsec_control.vertices.length-1;vert++){
+	//get first 2 matching points
+	var p1 = xsec_control.vertices[vert];
+	var p2 = xsec_control.vertices[vert + 1];
+	var xsec_seg_length = Math.sqrt((Math.pow((p1.geometry.y - p2.geometry.y),2) + Math.pow((p1.geometry.x - p2.geometry.x),2)));
+	var xsec_count = 0;
+	angle = (Math.atan((p2.geometry.x - p1.geometry.x)/(p2.geometry.y - p1.geometry.y)))/(Math.PI/180);  //must convert from rads
+	
+			x1 = p1.geometry.x;
+			y1 = p1.geometry.y;
+			x2 = p2.geometry.x;
+			y2 = p2.geometry.y;
+	
+	while ((xsec_running_total  ) < (xsec_done_length + xsec_seg_length )) {
+		result = getXYfromChainage(angle,xsec_seg_length,interval,(xsec_count));
+		Xarray[xyarray_count] = (result[0] - llx) / cellsize;
+		Yarray[xyarray_count] =( (result[1] - lly) / cellsize)-0.00000001; //prevents exact division later on to mainatin integretgy of "Floor + 1"
+		XYarray2[xyarray_count] = [result[0],result[1]];
+		
+			ELEVarray[xyarray_count] = new Array(1);
+			if (xsec_remainder == 0){ELEVarray[xyarray_count][0] =( interval * xyarray_count) - - cum_xsec_remainder ;} else {ELEVarray[xyarray_count][0] = (interval * (xyarray_count)) - - cum_xsec_remainder; }
+		
+		xsec_count = xsec_count + 1;
+		xyarray_count = xyarray_count +1
+		xsec_running_total = xsec_running_total + interval;
+	xsec_remainder = 0;
+	}
+	
+	xsec_done_length = xsec_done_length + xsec_seg_length;
+	xsec_remainder =  xsec_seg_length - (interval * xsec_count);
+	xsec_running_total = xsec_done_length;
+                  cum_xsec_remainder+= xsec_remainder;
+}
+
+//NEW GC 
+//for each XY in array cycle through them and put the required script file in a list 
+for (h=0; h<ELEVarray.length; h++){
+	if (parseInt(Yarray[h]) < num_of_rows && parseInt(Yarray[h]) > 0) {
+	//get grid square and load JS		
+		var gridX = Math.floor(Xarray[h]/gridsize)+1;
+		var gridY = Math.floor(Yarray[h]/gridsize);
+		var gridref = "g1r" + ((Math.floor((num_of_rows-Yarray[h])/gridsize)) + 1) + "c" + gridX + ".js";
+		
+		//check if valid grid and line number, only add to array if it is.  //new validation
+		var checknum = 0;
+		if (gridX > xgrids  || gridX < 1){checknum = 1}
+		if (gridY > ygrids  || gridY < 0){checknum = 1}
+		if ((num_of_rows - parseInt(Yarray[h])) >= num_of_lines  || (num_of_rows - parseInt(Yarray[h])) < 1){checknum = 1}
+		//end checks
+		if(checknum == 0){
+
+		//checks and current list creation
+		//check if script is in master list (ignore if it is
+		if (CheckMaster(gridref) == false) {
+			//check if script is in current list (to aviod duplication
+			if (CheckCurrent(gridref) == false) {
+				//this is the first occurance of ths script - add to current list
+				ScriptsNeeded[ScriptsNeeded.length] = gridref;				
+			}			
+		}
+		}			
+}
+}
+
+		//set the amount of scripts to be loaded - this will be matched to how many have loaded.
+		CurrentLoadTotal = ScriptsNeeded.length;
+		
+		//set global arrays to match those just created
+		currentXarray = Xarray;
+		currentYarray = Yarray;
+		
+		//if scripts are needed get them else skip
+		//fire off script loads
+		if (ScriptsNeeded.length > 0) {
+		for (n=0;n<ScriptsNeeded.length;n++){ //may not be any
+		//removed onload events and added to bottom of script files due to reliability in serving over http
+			var headID = document.getElementsByTagName("head")[0];         
+			var newScript = document.createElement('script');
+			newScript.type = 'text/javascript';
+			newScript.src = 'sk3080_DSM_2m/'  + ScriptsNeeded[n];
+			//pesky 'know it all' browsers' (i'm bitter because i've had to re-write this tool as GChrome seems to have one place where it is less standards complient than IE !!)
+//			newScript.onload=function(){CurrentLoadTotal = CurrentLoadTotal - 1; allLoaded()};
+			//IE
+//			newScript.onreadystatechange = function() {if (this.readyState == 'complete') {CurrentLoadTotal = CurrentLoadTotal - 1; allLoaded();}}
+			headID.appendChild(newScript);
+		}
+		}else{
+		//if no scripts need loading
+		     if (ScriptsNeeded.length == 0){CurrentLoadTotal = 0; allLoaded();}
+		}
+
+}
+
+//NEW GC 
+//function to determine if a script is in master list
+function CheckMaster(GRef){
+var isloaded = false;
+	for (t=0;t<MasterScriptList.length;t++){
+		if (MasterScriptList[t] == GRef){isloaded = true;}
+	}
+	return isloaded;
+}
+
+//NEW GC 
+//function to determine if a script is in current
+function CheckCurrent(GRef){
+var isloaded = false;
+	for (t=0;t<ScriptsNeeded.length;t++){
+		if (ScriptsNeeded[t] == GRef){isloaded = true;}
+	}
+	return isloaded;
+}
+
+//NEW GC 
+//function to determine if all scripts in current list are loaded
+function allLoaded(){
+var isloaded = false;
+		if (CurrentLoadTotal == 0){
+			isloaded = true; 
+			SendLevelRequests()
+			//add current script list to master script list
+				for (t=0;t<ScriptsNeeded.length;t++){
+					MasterScriptList[MasterScriptList.length] = ScriptsNeeded[t];
+				}
+			
+			//clear current list
+			ScriptsNeeded = new Array();
+		}
+}
+
+//NEW GC 
+//function to send off grid value retrievals
+function SendLevelRequests(){
+	for (t=0;t<ELEVarray.length;t++){
+		var gridX = Math.floor(currentXarray[t]/gridsize)+1;
+		var gridY = Math.floor(currentYarray[t]/gridsize);
+		scriptLoaded(t,interval,t,currentXarray[t],currentYarray[t],gridX,gridY,num_of_rows,gridsize);
+	}
+}
+
+
+
+
+
+//do after all scripts loaded
+function scriptLoaded(h,interval,count,Xarrayh,Yarrayh,gridX,gridY,num_of_rows,gridsize) {
+	//ELEVarray[h] = new Array(1);
+	//ELEVarray[h][0] = interval * count;
+
+	//check if valid grid and line number, only add to array if it is.  //new validation
+	var checknum = 0;
+	if (gridX > xgrids || gridX < 1 ){checknum = 1}
+	if (gridY > ygrids || gridY < 0){checknum = 1}
+	if ((num_of_rows - parseInt(Yarrayh)) >= num_of_lines || (num_of_rows - parseInt(Yarrayh)) < 1){checknum = 1}
+	//end checks
+	if (checknum == 0){
+	ELEVarray[h][1] = eval("g1r" + ((Math.floor((num_of_rows-Yarrayh)/gridsize)) + 1) + "c" + gridX + "l" + (num_of_rows - parseInt(Yarrayh)) + "[" + (((parseInt(Xarrayh))) - (gridsize * (gridX - 1))) + "]");	
+	} else
+	{ELEVarray[h][1] = 0}
+	tot1 = tot1 + 1;
+	
+	
+if(tot1 ==(((ELEVarray.length) * num_of_grids)) ){//do only when all elevations have been retrieved
+	//show correct tab to stop flot giving no heigh/width error
+	switch_tabs($('.defaulttab'));
+
+	//update xsec chart	
+	$.plot("#graph", [{label:'sk3080_DSM_2m', data: ELEVarray},{label:'sk3080_DTM_2m', data: ELEVarray2}], options);	
+
+	//build html table from ELEVarray
+	var htmlTAB;
+	fullArray =  new Array();
+	fullArray[0] =  new Array();
+	htmlTAB = "<table><tr><th>Sample</th><th>Distance</th><th>sk3080_DSM_2m</th><th>sk3080_DTM_2m</th></tr>";
+	for (i=0; i<ELEVarray.length; i++){
+	htmlTAB = htmlTAB + "<tr><td>" + i + "</td><td>" + ELEVarray[i][0].toFixed(2) + "</td><td>" + ELEVarray[i][1] + "</td><td>" + ELEVarray2[i][1] + "</td></tr>";
+	fullArray[i] =  new Array(); fullArray[i][0] = i; fullArray[i][0] = ELEVarray[i][0].toFixed(3); fullArray[i][1] = ELEVarray[i][1]; fullArray[0][0] = 'Distance'; fullArray[0][1] = 'sk3080_DSM_2m';fullArray[i][2] = ELEVarray2[i][1]; fullArray[0][2] = 'sk3080_DTM_2m';
+	}
+	htmlTAB = htmlTAB + "</table>";
+	document.getElementById('table').innerHTML = htmlTAB;
+
+	tot1=0;
+
+	}
+}
+
+
+//self explanitory !
+function getXYfromChainage(angle,seg_length,intervals,interval){
+
+var num_seg_intervals = seg_length / intervals;
+var rise =  y2 - y1;
+var run =  x2 - x1;
+
+var nX = run / num_seg_intervals;
+var nY = rise / num_seg_intervals;
+
+var fullXY = new Array();
+
+fullXY[0] =  x1 + (nX * interval); 
+fullXY[1] = y1 + (nY * interval);
+
+
+return fullXY;
+
+}
+
+
+function update2() {
+//new GC
+//incase last call crashed
+tot12=0;
+ScriptsNeeded2 = new Array();
+ELEVarray2  = new Array(); //added for multipart
+
+// *** multipart - xsec
+var xsec_length = map.layers[2].features[0].geometry.getLength();
+var xsec_done_length = 0;
+var xsec_running_total = 0;
+var xsec_control = map.controls[6];
+interval = xsec_length / intervals;
+var Xarray  = new Array();
+var Yarray  = new Array();
+XYarray2 = new Array();
+var xyarray_count = 0;
+
+
+var xsec_remainder = 0;//added for multipart
+var cum_xsec_remainder = 0;
+for(var vert = 0;vert<xsec_control.vertices.length-1;vert++){
+	//get first 2 matching points
+	var p1 = xsec_control.vertices[vert];
+	var p2 = xsec_control.vertices[vert + 1];
+	var xsec_seg_length = Math.sqrt((Math.pow((p1.geometry.y - p2.geometry.y),2) + Math.pow((p1.geometry.x - p2.geometry.x),2)));
+	var xsec_count = 0;
+	angle = (Math.atan((p2.geometry.x - p1.geometry.x)/(p2.geometry.y - p1.geometry.y)))/(Math.PI/180);  //must convert from rads
+	
+			x1 = p1.geometry.x;
+			y1 = p1.geometry.y;
+			x2 = p2.geometry.x;
+			y2 = p2.geometry.y;
+	
+	while ((xsec_running_total  ) < (xsec_done_length + xsec_seg_length )) {
+		result = getXYfromChainage(angle,xsec_seg_length,interval,(xsec_count));
+		Xarray[xyarray_count] = (result[0] - llx) / cellsize;
+		Yarray[xyarray_count] =( (result[1] - lly) / cellsize)-0.00000001; //prevents exact division later on to mainatin integretgy of "Floor + 1"
+		XYarray2[xyarray_count] = [result[0],result[1]];
+		
+			ELEVarray2[xyarray_count] = new Array(1);
+			if (xsec_remainder == 0){ELEVarray2[xyarray_count][0] =( interval * xyarray_count) - - cum_xsec_remainder ;} else {ELEVarray2[xyarray_count][0] = (interval * (xyarray_count)) - - cum_xsec_remainder; }
+		
+		xsec_count = xsec_count + 1;
+		xyarray_count = xyarray_count +1
+		xsec_running_total = xsec_running_total + interval;
+	xsec_remainder = 0;
+	}
+	
+	xsec_done_length = xsec_done_length + xsec_seg_length;
+	xsec_remainder =  xsec_seg_length - (interval * xsec_count);
+	xsec_running_total = xsec_done_length;
+                  cum_xsec_remainder+= xsec_remainder;
+}
+
+//NEW GC 
+//for each XY in array cycle through them and put the required script file in a list 
+ELEVarray2  = new Array();
+//use chainages from first grid
+for  (h=0; h<ELEVarray.length; h++){
+ELEVarray2[h] = new Array(1);
+ELEVarray2[h][0] = ELEVarray[h][0];
+}
+
+for (h=0; h<ELEVarray2.length; h++){
+	if (parseInt(Yarray[h]) < num_of_rows2 && parseInt(Yarray[h]) > 0) {
+	//get grid square and load JS		
+		var gridX = Math.floor(Xarray[h]/gridsize2)+1;
+		var gridY = Math.floor(Yarray[h]/gridsize2);
+		var gridref ="g2r" + ((Math.floor((num_of_rows-Yarray[h])/gridsize2)) + 1) + "c" + gridX + ".js";		
+
+		//check if valid grid and line number, only add to array if it is.  //new validation
+		var checknum = 0;
+		if (gridX > xgrids2  || gridX < 1){checknum = 1}
+		if (gridY > ygrids2  || gridY < 0){checknum = 1}
+		if ((num_of_rows2 - parseInt(Yarray[h])) > num_of_lines2  || (num_of_rows2 - parseInt(Yarray[h])) < 1){checknum = 1}
+		//end checks
+		if(checknum == 0){
+
+		//checks and current list creation
+		//check if script is in master list (ignore if it is
+		if (CheckMaster2(gridref) == false) {
+			//check if script is in current list (to aviod duplication
+			if (CheckCurrent2(gridref) == false) {
+				//this is the first occurance of ths script - add to current list
+				ScriptsNeeded2[ScriptsNeeded2.length] = gridref;				
+			}			
+		}
+		}				
+}
+}
+
+		//set the amount of scripts to be loaded - this will be matched to how many have loaded.
+		CurrentLoadTotal2 = ScriptsNeeded2.length;
+		
+		//set global arrays to match those just created
+		currentXarray2 = Xarray;
+		currentYarray2 = Yarray;
+		
+		//if scripts are needed get them else skip
+		//fire off script loads
+		if (ScriptsNeeded2.length > 0) {
+		for (n=0;n<ScriptsNeeded2.length;n++){ //may not be any
+		 //removed onload events as not working correctly over http (fine over file protocol)... have added line to end of script files tohave same effect.
+			var headID = document.getElementsByTagName("head")[0];         
+			var newScript = document.createElement('script');
+			newScript.type = 'text/javascript';
+			newScript.src = 'sk3080_DSM_2m/'  + ScriptsNeeded2[n];
+			//pesky 'know it all' browsers' (i'm bitter because i've had to re-write this tool as GChrome seems to have one place where it is less standards complient than IE !!)
+//			newScript.onload=function(){CurrentLoadTotal2 = CurrentLoadTotal2 - 1; allLoaded2()};
+			//IE
+//			newScript.onreadystatechange = function() {if (this.readyState == 'complete') {CurrentLoadTotal2 = CurrentLoadTotal2 - 1; allLoaded2();}}
+			headID.appendChild(newScript);
+		}
+		}else{
+		//if no scripts need loading
+		    if (ScriptsNeeded2.length == 0){CurrentLoadTotal2 = 0; allLoaded2();}
+		}
+
+}
+
+//NEW GC 
+//function to determine if a script is in master list
+function CheckMaster2(GRef){
+var isloaded = false;
+	for (t=0;t<MasterScriptList2.length;t++){
+		if (MasterScriptList2[t] == GRef){isloaded = true;}
+	}
+	return isloaded;
+}
+
+//NEW GC 
+//function to determine if a script is in current
+function CheckCurrent2(GRef){
+var isloaded = false;
+	for (t=0;t<ScriptsNeeded2.length;t++){
+		if (ScriptsNeeded2[t] == GRef){isloaded = true;}
+	}
+	return isloaded;
+}
+
+//NEW GC 
+//function to determine if all scripts in current list are loaded
+function allLoaded2(){
+var isloaded = false;
+		if (CurrentLoadTotal2 == 0){
+			isloaded = true; 
+			SendLevelRequests2()
+			//add current script list to master script list
+				for (t=0;t<ScriptsNeeded2.length;t++){
+					MasterScriptList2[MasterScriptList2.length] = ScriptsNeeded2[t];
+				}
+			
+			//clear current list
+			ScriptsNeeded2 = new Array();
+		}
+}
+
+//NEW GC 
+//function to send off grid value retrievals
+function SendLevelRequests2(){
+	for (t=0;t<ELEVarray2.length;t++){
+		var gridX = Math.floor(currentXarray2[t]/gridsize2)+1;
+		var gridY = Math.floor(currentYarray2[t]/gridsize2);
+		scriptLoaded2(t,interval,t,currentXarray2[t],currentYarray2[t],gridX,gridY,num_of_rows2,gridsize2);
+	}
+}
+
+
+
+
+
+//do after all scripts loaded
+function scriptLoaded2(h,interval,count,Xarrayh,Yarrayh,gridX,gridY,num_of_rows,gridsize) {
+	//ELEVarray2[h] = new Array(1);
+	//ELEVarray2[h][0] = interval * count;
+
+	//check if valid grid and line number, only add to array if it is.  //new validation
+	var checknum = 0;
+	if (gridX > xgrids2 || gridX < 1 ){checknum = 1}
+	if (gridY > ygrids2 || gridY < 0){checknum = 1}
+	if ((num_of_rows2 - parseInt(Yarrayh)) > num_of_lines2 || (num_of_rows2 - parseInt(Yarrayh)) < 1){checknum = 1}
+
+	if (checknum == 0){
+	ELEVarray2[h][1] = eval("g2r" + ((Math.floor((num_of_rows-Yarrayh)/gridsize)) + 1) + "c" + gridX + "l" + (num_of_rows - parseInt(Yarrayh)) + "[" + (((parseInt(Xarrayh))) - (gridsize * (gridX - 1))) + "]");
+	} else
+	{ELEVarray2[h][1] = 0}	
+	tot1 = tot1 + 1;
+	
+	
+if(tot1 == (((ELEVarray2.length) * num_of_grids)) ){//do only when all elevations have been retrieved
+	//show correct tab to stop flot giving no heigh/width error
+	switch_tabs($('.defaulttab'));
+
+	//update xsec chart	
+	$.plot("#graph",[{label:'sk3080_DSM_2m', data: ELEVarray},{label:'sk3080_DTM_2m', data: ELEVarray2}], options);	
+
+	//build html table from ELEVarray
+	var htmlTAB;
+	fullArray =  new Array();
+	fullArray[0] =  new Array();
+	htmlTAB = "<table><tr><th>Sample</th><th>Distance</th><th>sk3080_DSM_2m</th><th>sk3080_DTM_2m</th></tr>";
+	for (i=0; i<ELEVarray.length; i++){
+	htmlTAB = htmlTAB + "<tr><td>" + i + "</td><td>" + ELEVarray[i][0].toFixed(2) + "</td><td>" + ELEVarray[i][1] + "</td><td>" + ELEVarray2[i][1] + "</td></tr>";
+	fullArray[i] =  new Array(); fullArray[i][0] = i; fullArray[i][0] = ELEVarray[i][0].toFixed(3); fullArray[i][1] = ELEVarray[i][1]; fullArray[0][0] = 'Distance'; fullArray[0][1] = 'sk3080_DSM_2m';fullArray[i][2] = ELEVarray2[i][1]; fullArray[0][2] = 'sk3080_DTM_2m';
+	}
+	htmlTAB = htmlTAB + "</table>";
+	document.getElementById('table').innerHTML = htmlTAB;
+
+	tot1=0;
+
+	}
+}
+
+
+//self explanitory !
+function getXYfromChainage2(angle,seg_length,intervals,interval){
+
+var num_seg_intervals = seg_length / intervals;
+var rise =  y2 - y1;
+var run =  x2 - x1;
+
+var nX = run / num_seg_intervals;
+var nY = rise / num_seg_intervals;
+
+var fullXY = new Array();
+
+fullXY[0] =  x1 + (nX * interval); 
+fullXY[1] = y1 + (nY * interval);
+
+
+return fullXY;
+
+}
+
+
+function findStyle(el, style){
+    var val;
+    if(document.defaultView){/* It's a browser which follows w3c */
+        val = document.defaultView.getComputedStyle(el, "").getPropertyValue(style);
+    }else{/* It's IE */
+        val = el['client'+style.substr(0,1).toUpperCase() + style.substr(1)];
+    }
+    return val;
+}
+
+
+
+function switch_tabs(obj)
+{
+	$('.tab-content').hide();
+	$('.tabs a').removeClass("selected");
+	var id = obj.attr("rel");
+ 
+	$('#'+id).show();
+	obj.addClass("selected");
+} 
+
+//set sample change event
+function changesamples(number){intervals = number}
+
+//function to plot the sample points
+function plotpoints(){
+if (currentXarray != null){
+for (r=0; r<currentXarray.length; r++){
+PointLayer.addFeatures(new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(XYarray2[r][0],XYarray2[r][1]) , {sample:r, chainage:ELEVarray[r][0], ele:ELEVarray[r][1], ele2:ELEVarray2[r][1]}));
+}
+}
+//map.addLayer(PointLayer);
+}
+
+function clearpoints(){
+PointLayer.removeAllFeatures();
+}
+
+
+
+
+
+
+
+</script>
